@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <vector> 
+#include <time.h>
 #define MAXN 2000
 
 
@@ -70,6 +71,7 @@ void printVec(int d, std::vector<int> &v) {
         printf("\n");
     }
 }
+
 
 // Multiply a*b and store the result in c
 void strassen(int d, std::vector<int> &a, std::vector<int> &b, std::vector<int> &c) {
@@ -145,9 +147,61 @@ void strassen(int d, std::vector<int> &a, std::vector<int> &b, std::vector<int> 
 
 }
 
+void run_strassen(int d,  std::vector<int> &a, std::vector<int> &b, std::vector<int> &c) {
+    int sz = (d+1)/2;
+    num_layers = numBits(sz);
+    for (int i = 0; i < NUM_INTERMED; i++) {
+        med[i] = std::vector<std::vector<int>>(num_layers); 
+    }
+    for (int i = 0; i < NUM_P; i++) {
+        p[i] = std::vector<std::vector<int>>(num_layers); 
+    }
+    while (true) {
+        for (int i = 0; i < NUM_INTERMED; i++) {
+            med[i][numBits(sz)-1] = std::vector<int>(sz*sz);
+        }
+        for (int i = 0; i < NUM_P; i++) {
+            p[i][numBits(sz)-1] = std::vector<int>(sz*sz);
+        }
+        if (sz == 1) {
+            break;
+        }
+        sz = (sz+1)/2;
+    }
+    strassen(d, a, b, c);
+}
+
+void triangle() {
+    
+    int d = 1024;
+    std::vector<int> graph(d*d, 0);
+    for (int i = 5; i >= 1; i--) {
+        std::fill (graph.begin(),graph.begin()+d*d,0);
+        double p = (double)i/100;
+        for (int j = 0; j < d; j++) {
+            for (int k = 0; k < j; k++) {
+                double weight = ((double) rand() / (RAND_MAX));
+                if (weight < p) {
+                    graph[d*j + k] = 1;
+                    graph[d*k + j] = 1;
+                }
+            }
+        }
+        std::vector<int> square(d*d, 0);
+        std::vector<int> cube(d*d, 0);
+        run_strassen(d, graph, graph, square);
+        run_strassen(d, graph, square, cube);
+        int num_triangles = 0;
+        for (int i =0; i < d; i++)  {
+            num_triangles += cube[d*i + i];
+        }
+        printf("%d\n", num_triangles/6);
+    }
+}
 
 
 int main(int argc, char *argv[]) {
+    srand(time(NULL));
     if (argc == 4) {
         int flag = atoi(argv[1]);
         int d = atoi(argv[2]);
@@ -166,32 +220,13 @@ int main(int argc, char *argv[]) {
         }
         std::vector<int> c(d*d);
 
-        int sz = (d+1)/2;
-        num_layers = numBits(sz);
-        for (int i = 0; i < NUM_INTERMED; i++) {
-            med[i] = std::vector<std::vector<int>>(num_layers); 
-        }
-        for (int i = 0; i < NUM_P; i++) {
-            p[i] = std::vector<std::vector<int>>(num_layers); 
-        }
-        while (true) {
-            for (int i = 0; i < NUM_INTERMED; i++) {
-                med[i][numBits(sz)-1] = std::vector<int>(sz*sz);
-            }
-            for (int i = 0; i < NUM_P; i++) {
-                p[i][numBits(sz)-1] = std::vector<int>(sz*sz);
-            }
-            if (sz == 1) {
-                break;
-            }
-            sz = (sz+1)/2;
-        }
-        strassen(d, a, b, c);
+        run_strassen(d, a, b, c);
         // printVec(d, c);
         printf("done\n");
     }
     else {
-        printf("usage: ./strassen flag dimension inputfile\n");
+        // printf("usage: ./strassen flag dimension inputfile\n");
+        triangle();
     }
 
 }
